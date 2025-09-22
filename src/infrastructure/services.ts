@@ -161,14 +161,14 @@ export class WebCrawlerService implements CrawlerService {
 					}
 				} catch (error) {
 					console.error(`Request error on attempt ${attempt + 1}:`, error)
-					
+
 					// Additional diagnostic when request fails
 					if (attempt === 0) {
 						console.log('🔍 Running additional diagnostics...')
 						const hostname = new URL(url).hostname
 						await this.testHttpsConnection(hostname)
 					}
-					
+
 					if (attempt < this.config.maxRetries - 1) {
 						const backoffTime = Math.pow(2, attempt) * 1000
 						console.log(`⏳ Waiting ${backoffTime}ms before retry...`)
@@ -181,7 +181,9 @@ export class WebCrawlerService implements CrawlerService {
 			console.log(`🔄 Axios failed, trying native HTTPS for: ${url}`)
 			const nativeResult = await this.fetchWithNativeHttps(url, urlHeaders)
 			if (nativeResult && nativeResult.length > 1000) {
-				console.log(`✅ Native HTTPS succeeded, fetched ${nativeResult.length} characters`)
+				console.log(
+					`✅ Native HTTPS succeeded, fetched ${nativeResult.length} characters`
+				)
 				return nativeResult
 			}
 		}
@@ -355,13 +357,13 @@ export class WebCrawlerService implements CrawlerService {
 					`✅ DNS resolution successful: ${hostname} -> ${result.address}`
 				)
 				this.cacheDnsResult(hostname, result.address)
-				
+
 				// Test TCP connection to the resolved IP
 				const tcpTest = await this.testTcpConnection(result.address, 443)
 				if (!tcpTest) {
 					console.warn(`⚠️ TCP connection to ${result.address}:443 failed`)
 				}
-				
+
 				return true
 			}
 
@@ -409,24 +411,24 @@ export class WebCrawlerService implements CrawlerService {
 		return new Promise((resolve) => {
 			const socket = new net.Socket()
 			socket.setTimeout(5000)
-			
+
 			socket.on('connect', () => {
 				console.log(`✅ TCP connection to ${ip}:${port} successful`)
 				socket.destroy()
 				resolve(true)
 			})
-			
+
 			socket.on('error', (error) => {
 				console.log(`❌ TCP connection to ${ip}:${port} failed:`, error.message)
 				resolve(false)
 			})
-			
+
 			socket.on('timeout', () => {
 				console.log(`⏰ TCP connection to ${ip}:${port} timed out`)
 				socket.destroy()
 				resolve(false)
 			})
-			
+
 			socket.connect(port, ip)
 		})
 	}
@@ -441,28 +443,33 @@ export class WebCrawlerService implements CrawlerService {
 				timeout: 10000,
 				rejectUnauthorized: false, // Ignore SSL certificate errors
 			}
-			
+
 			const req = https.request(options, (res) => {
-				console.log(`✅ HTTPS connection to ${hostname} successful, status: ${res.statusCode}`)
+				console.log(
+					`✅ HTTPS connection to ${hostname} successful, status: ${res.statusCode}`
+				)
 				resolve(true)
 			})
-			
+
 			req.on('error', (error) => {
 				console.log(`❌ HTTPS connection to ${hostname} failed:`, error.message)
 				resolve(false)
 			})
-			
+
 			req.on('timeout', () => {
 				console.log(`⏰ HTTPS connection to ${hostname} timed out`)
 				req.destroy()
 				resolve(false)
 			})
-			
+
 			req.end()
 		})
 	}
 
-	private async fetchWithNativeHttps(url: string, headers: any): Promise<string> {
+	private async fetchWithNativeHttps(
+		url: string,
+		headers: any
+	): Promise<string> {
 		return new Promise((resolve) => {
 			const urlObj = new URL(url)
 			const options = {
@@ -476,30 +483,30 @@ export class WebCrawlerService implements CrawlerService {
 			}
 
 			let data = ''
-			
+
 			const req = https.request(options, (res) => {
 				console.log(`Native HTTPS response status: ${res.statusCode}`)
-				
+
 				res.on('data', (chunk) => {
 					data += chunk
 				})
-				
+
 				res.on('end', () => {
 					resolve(data)
 				})
 			})
-			
+
 			req.on('error', (error) => {
 				console.log(`Native HTTPS error:`, error.message)
 				resolve('') // Return empty string instead of rejecting
 			})
-			
+
 			req.on('timeout', () => {
 				console.log('Native HTTPS request timed out')
 				req.destroy()
 				resolve('')
 			})
-			
+
 			req.end()
 		})
 	}
