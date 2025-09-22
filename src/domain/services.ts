@@ -5,31 +5,17 @@ import { NewsItem, CrawlResult, NotificationResult } from './entities'
 import { NewsRepository } from './repositories'
 
 export interface CrawlerService {
-	/**
-	 * Perform web crawling
-	 */
 	crawl(): Promise<CrawlResult>
-
-	/**
-	 * Test connection to target website
-	 */
 	testConnection(): Promise<boolean>
 }
 
 export interface NotificationService {
-	/**
-	 * Send notification
-	 */
 	sendNotification(
 		title: string,
 		message: string,
 		items?: NewsItem[],
 		isDevNotification?: boolean
 	): Promise<NotificationResult>
-
-	/**
-	 * Test notification connection
-	 */
 	testConnection(): Promise<boolean>
 }
 
