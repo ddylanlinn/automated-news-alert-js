@@ -98,11 +98,8 @@ export class WebCrawlerService implements CrawlerService {
 	}
 
 	private async fetchPageContent(): Promise<string> {
-		// Test DNS resolution first
-		const dnsSuccess = await this.testDnsResolution()
-		if (!dnsSuccess) {
-			console.warn('DNS resolution failed, proceeding with original URL')
-		}
+		// Test DNS resolution first - enhanced like Python version
+		const dnsResult = await this.testDnsResolutionEnhanced()
 
 		const headers = {
 			'User-Agent': this.getRandomUserAgent(),
@@ -114,81 +111,107 @@ export class WebCrawlerService implements CrawlerService {
 			'Upgrade-Insecure-Requests': '1',
 		}
 
-		// Try with original URL first, then with IP if DNS fails
-		const urlsToTry = [this.config.targetUrl]
-		if (!dnsSuccess && process.env['DNS_FALLBACK_ENABLED'] === 'true') {
-			// Add IP-based URL as fallback
-			const targetIp = process.env['TARGET_IP'] || '210.241.78.32'
-			const ipUrl = this.config.targetUrl.replace('www.hpa.gov.tw', targetIp)
-			urlsToTry.push(ipUrl)
-			console.log(`DNS fallback enabled, will try IP: ${targetIp}`)
+		// Determine URL and headers like Python version
+		let targetUrl: string
+		let targetHeaders: any = { ...headers }
+
+		if (dnsResult.success && dnsResult.resolvedIp) {
+			// Use resolved IP like Python version
+			const url = new URL(this.config.targetUrl)
+			const originalHostname = url.hostname
+			targetUrl = this.config.targetUrl.replace(
+				originalHostname,
+				dnsResult.resolvedIp
+			)
+			targetHeaders['Host'] = originalHostname
+			console.log(
+				`Using resolved IP address: ${dnsResult.resolvedIp} (Host: ${originalHostname})`
+			)
+		} else {
+			// Use original URL
+			targetUrl = this.config.targetUrl
+			console.log('Using original URL')
 		}
 
-		for (const url of urlsToTry) {
-			// Prepare headers for this URL
-			const urlHeaders: any = { ...headers }
-			if (
-				url.includes('210.241.78.32') ||
-				url.includes(process.env['TARGET_IP'] || '')
-			) {
-				// Add Host header when using IP address
-				urlHeaders['Host'] = 'www.hpa.gov.tw'
-			}
-
-			for (let attempt = 0; attempt < this.config.maxRetries; attempt++) {
-				try {
-					console.log(
-						`Fetching page (attempt ${attempt + 1}/${
-							this.config.maxRetries
-						}) from: ${url}`
-					)
-
-					const response = await this.httpClient.get(url, {
-						headers: urlHeaders,
-						maxRedirects: 5,
-					})
-
-					// Check if we got valid content
-					if (response.data && response.data.length > 1000) {
-						console.log(
-							`Successfully fetched ${response.data.length} characters`
-						)
-						return response.data
-					} else {
-						console.log(
-							`Page content too short: ${response.data?.length || 0} characters`
-						)
-					}
-				} catch (error) {
-					console.error(`Request error on attempt ${attempt + 1}:`, error)
-
-					// Additional diagnostic when request fails
-					if (attempt === 0) {
-						console.log('🔍 Running additional diagnostics...')
-						const hostname = new URL(url).hostname
-						await this.testHttpsConnection(hostname)
-					}
-
-					if (attempt < this.config.maxRetries - 1) {
-						const backoffTime = Math.pow(2, attempt) * 1000
-						console.log(`⏳ Waiting ${backoffTime}ms before retry...`)
-						await this.sleep(backoffTime) // Exponential backoff
-					}
-				}
-			}
-
-			// If Axios fails for this URL, try with native HTTPS as fallback
-			console.log(`🔄 Axios failed, trying native HTTPS for: ${url}`)
-			const nativeResult = await this.fetchWithNativeHttps(url, urlHeaders)
-			if (nativeResult && nativeResult.length > 1000) {
+		// Single URL approach like Python version
+		for (let attempt = 0; attempt < this.config.maxRetries; attempt++) {
+			try {
 				console.log(
-					`✅ Native HTTPS succeeded, fetched ${nativeResult.length} characters`
+					`Fetching page (attempt ${attempt + 1}/${this.config.maxRetries})`
 				)
-				return nativeResult
+
+				const response = await this.httpClient.get(targetUrl, {
+					headers: targetHeaders,
+					maxRedirects: 5,
+					httpsAgent: dnsResult.resolvedIp
+						? new https.Agent({
+								rejectUnauthorized: false, // Disable SSL verification when using IP like Python
+						  })
+						: undefined,
+				})
+
+				// Check if we got valid content
+				if (response.data && response.data.length > 1000) {
+					console.log(`Successfully fetched ${response.data.length} characters`)
+					return response.data
+				} else {
+					console.log(
+						`Page content too short: ${response.data?.length || 0} characters`
+					)
+				}
+			} catch (error) {
+				console.error(`Request error on attempt ${attempt + 1}:`, error)
+
+				if (attempt < this.config.maxRetries - 1) {
+					const backoffTime = Math.pow(2, attempt) * 1000
+					console.log(`⏳ Waiting ${backoffTime}ms before retry...`)
+					await this.sleep(backoffTime)
+				}
 			}
 		}
 
 		return ''
+	}
+
+	private async testDnsResolutionEnhanced(): Promise<{
+		success: boolean
+		resolvedIp?: string
+	}> {
+		try {
+			const url = new URL(this.config.targetUrl)
+			const hostname = url.hostname
+
+			if (!hostname) {
+				console.error('Cannot extract hostname from URL')
+				return { success: false }
+			}
+
+			// Check DNS cache
+			const cachedResult = this.getCachedDnsResult(hostname)
+			if (cachedResult) {
+				console.log(`Using DNS cache: ${hostname} -> ${cachedResult}`)
+				return { success: true, resolvedIp: cachedResult }
+			}
+
+			console.log(`Testing DNS resolution: ${hostname}`)
+
+			// Try multiple DNS resolution methods like Python version
+			const resolvedIp = await this.resolveHostnameWithRetry(hostname)
+
+			if (resolvedIp) {
+				console.log(
+					`✅ DNS resolution successful: ${hostname} -> ${resolvedIp}`
+				)
+				this.cacheDnsResult(hostname, resolvedIp)
+				return { success: true, resolvedIp }
+			}
+
+			return { success: false }
+		} catch (error) {
+			console.error('DNS test error:', error)
+			console.log('DNS resolution failed, proceeding with original URL')
+			return { success: false }
+		}
 	}
 
 	private extractNewsItems(html: string): NewsItem[] {
@@ -344,24 +367,17 @@ export class WebCrawlerService implements CrawlerService {
 
 			console.log(`Testing DNS resolution: ${hostname}`)
 
-			// Try DNS resolution with timeout
-			const result = (await Promise.race([
-				dnsLookup(hostname),
-				new Promise((_, reject) =>
-					setTimeout(() => reject(new Error('DNS timeout')), 10000)
-				),
-			])) as any
+			// Try multiple DNS resolution methods like Python version
+			const result = await this.resolveHostnameWithRetry(hostname)
 
-			if (result && result.address) {
-				console.log(
-					`✅ DNS resolution successful: ${hostname} -> ${result.address}`
-				)
-				this.cacheDnsResult(hostname, result.address)
+			if (result) {
+				console.log(`✅ DNS resolution successful: ${hostname} -> ${result}`)
+				this.cacheDnsResult(hostname, result)
 
 				// Test TCP connection to the resolved IP
-				const tcpTest = await this.testTcpConnection(result.address, 443)
+				const tcpTest = await this.testTcpConnection(result, 443)
 				if (!tcpTest) {
-					console.warn(`⚠️ TCP connection to ${result.address}:443 failed`)
+					console.warn(`⚠️ TCP connection to ${result}:443 failed`)
 				}
 
 				return true
@@ -372,6 +388,110 @@ export class WebCrawlerService implements CrawlerService {
 			console.error('DNS test error:', error)
 			console.log('DNS resolution failed, proceeding with original URL')
 			return false
+		}
+	}
+
+	private async resolveHostnameWithRetry(
+		hostname: string
+	): Promise<string | null> {
+		// Multiple DNS servers list - prioritize reliable public DNS like Python version
+		const dnsServers = [
+			'8.8.8.8', // Google DNS (most reliable)
+			'1.1.1.1', // Cloudflare DNS (most reliable)
+			'8.8.4.4', // Google DNS backup
+			'1.0.0.1', // Cloudflare DNS backup
+			'208.67.222.222', // OpenDNS
+			'208.67.220.220', // OpenDNS backup
+			null, // System default (last attempt)
+		]
+
+		for (let i = 0; i < dnsServers.length; i++) {
+			const dnsServer = dnsServers[i]
+			try {
+				console.log(
+					`Trying DNS resolution (method ${i + 1}/${
+						dnsServers.length
+					}): ${hostname}`
+				)
+				if (dnsServer) {
+					console.log(`  Using DNS server: ${dnsServer}`)
+				}
+
+				let result: any
+				if (dnsServer) {
+					// Use specified DNS server with custom resolver
+					result = await this.resolveWithDnsServer(hostname, dnsServer)
+				} else {
+					// Use system default
+					result = await Promise.race([
+						dnsLookup(hostname),
+						new Promise((_, reject) =>
+							setTimeout(() => reject(new Error('DNS timeout')), 10000)
+						),
+					])
+				}
+
+				if (result && result.address) {
+					console.log(
+						`✅ DNS resolution successful: ${hostname} -> ${result.address}`
+					)
+					return result.address
+				}
+			} catch (error) {
+				console.log(`❌ DNS resolution failed (method ${i + 1}): ${error}`)
+				if (i < dnsServers.length - 1) {
+					console.log('  Trying next DNS server...')
+					await this.sleep(1000) // Brief wait like Python version
+				}
+				continue
+			}
+		}
+
+		console.log('❌ All DNS resolution methods failed')
+		return null
+	}
+
+	private async resolveWithDnsServer(
+		hostname: string,
+		dnsServer: string
+	): Promise<any> {
+		// Implement custom DNS resolution using DoH (DNS over HTTPS) as fallback
+		try {
+			console.log(`  Trying DoH resolution via ${dnsServer}`)
+
+			// Use Cloudflare or Google DoH API
+			let dohUrl: string
+			if (dnsServer === '1.1.1.1' || dnsServer === '1.0.0.1') {
+				dohUrl = `https://cloudflare-dns.com/dns-query?name=${hostname}&type=A`
+			} else if (dnsServer === '8.8.8.8' || dnsServer === '8.8.4.4') {
+				dohUrl = `https://dns.google/resolve?name=${hostname}&type=A`
+			} else {
+				// Fallback to system DNS
+				throw new Error('Unsupported DNS server for DoH')
+			}
+
+			const response = await this.httpClient.get(dohUrl, {
+				headers: {
+					Accept: 'application/dns-json',
+				},
+				timeout: 5000,
+			})
+
+			if (
+				response.data &&
+				response.data.Answer &&
+				response.data.Answer.length > 0
+			) {
+				const ip = response.data.Answer[0].data
+				console.log(`✅ DoH resolution successful: ${hostname} -> ${ip}`)
+				return { address: ip }
+			}
+
+			throw new Error('No DNS records found via DoH')
+		} catch (error) {
+			console.log(`  DoH resolution failed: ${error}`)
+			// Fallback to system DNS
+			return await dnsLookup(hostname)
 		}
 	}
 
@@ -430,84 +550,6 @@ export class WebCrawlerService implements CrawlerService {
 			})
 
 			socket.connect(port, ip)
-		})
-	}
-
-	private async testHttpsConnection(hostname: string): Promise<boolean> {
-		return new Promise((resolve) => {
-			const options = {
-				hostname,
-				port: 443,
-				path: '/',
-				method: 'HEAD',
-				timeout: 10000,
-				rejectUnauthorized: false, // Ignore SSL certificate errors
-			}
-
-			const req = https.request(options, (res) => {
-				console.log(
-					`✅ HTTPS connection to ${hostname} successful, status: ${res.statusCode}`
-				)
-				resolve(true)
-			})
-
-			req.on('error', (error) => {
-				console.log(`❌ HTTPS connection to ${hostname} failed:`, error.message)
-				resolve(false)
-			})
-
-			req.on('timeout', () => {
-				console.log(`⏰ HTTPS connection to ${hostname} timed out`)
-				req.destroy()
-				resolve(false)
-			})
-
-			req.end()
-		})
-	}
-
-	private async fetchWithNativeHttps(
-		url: string,
-		headers: any
-	): Promise<string> {
-		return new Promise((resolve) => {
-			const urlObj = new URL(url)
-			const options = {
-				hostname: urlObj.hostname,
-				port: 443,
-				path: urlObj.pathname + urlObj.search,
-				method: 'GET',
-				headers,
-				timeout: this.config.timeoutSeconds * 1000,
-				rejectUnauthorized: false, // Ignore SSL certificate errors
-			}
-
-			let data = ''
-
-			const req = https.request(options, (res) => {
-				console.log(`Native HTTPS response status: ${res.statusCode}`)
-
-				res.on('data', (chunk) => {
-					data += chunk
-				})
-
-				res.on('end', () => {
-					resolve(data)
-				})
-			})
-
-			req.on('error', (error) => {
-				console.log(`Native HTTPS error:`, error.message)
-				resolve('') // Return empty string instead of rejecting
-			})
-
-			req.on('timeout', () => {
-				console.log('Native HTTPS request timed out')
-				req.destroy()
-				resolve('')
-			})
-
-			req.end()
 		})
 	}
 }
