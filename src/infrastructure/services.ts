@@ -287,8 +287,14 @@ export class WebCrawlerService implements CrawlerService {
 
 			console.log(`Testing DNS resolution: ${hostname}`)
 
-			// Try DNS resolution
-			const result = await dnsLookup(hostname)
+			// Try DNS resolution with timeout
+			const result = (await Promise.race([
+				dnsLookup(hostname),
+				new Promise((_, reject) =>
+					setTimeout(() => reject(new Error('DNS timeout')), 10000)
+				),
+			])) as any
+
 			if (result && result.address) {
 				console.log(
 					`✅ DNS resolution successful: ${hostname} -> ${result.address}`
@@ -300,6 +306,7 @@ export class WebCrawlerService implements CrawlerService {
 			return false
 		} catch (error) {
 			console.error('DNS test error:', error)
+			console.log('DNS resolution failed, proceeding with original URL')
 			return false
 		}
 	}

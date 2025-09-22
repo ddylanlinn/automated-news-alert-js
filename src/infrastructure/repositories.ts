@@ -169,10 +169,10 @@ export class JsonConfigRepository implements ConfigRepository {
 	public async getCrawlerConfig(): Promise<CrawlerConfig> {
 		const rawConfig = this.configManager.getCrawlerConfig()
 		return {
-			targetUrl: rawConfig?.target_url || '',
-			timeoutSeconds: rawConfig?.timeout_seconds || 60,
-			maxRetries: rawConfig?.max_retries || 3,
-			userAgents: rawConfig?.user_agents || [],
+			targetUrl: rawConfig?.targetUrl || '',
+			timeoutSeconds: rawConfig?.timeoutSeconds || 60,
+			maxRetries: rawConfig?.maxRetries || 3,
+			userAgents: rawConfig?.userAgents || [],
 		}
 	}
 
@@ -180,22 +180,22 @@ export class JsonConfigRepository implements ConfigRepository {
 		const rawConfig = this.configManager.getNotificationConfig()
 		const emailConfig = rawConfig?.email
 
-		const deploymentNotification = emailConfig?.deployment_notification
+		const deploymentNotification = emailConfig?.deploymentNotification
 			? {
-					enabled: emailConfig.deployment_notification.enabled || false,
-					devEmail: emailConfig.deployment_notification.dev_email || '',
+					enabled: emailConfig.deploymentNotification.enabled || false,
+					devEmail: emailConfig.deploymentNotification.devEmail || '',
 			  }
 			: undefined
 
 		return {
 			email: {
 				enabled: emailConfig?.enabled || false,
-				smtpServer: emailConfig?.smtp_server || '',
-				smtpPort: emailConfig?.smtp_port || 587,
+				smtpServer: emailConfig?.smtpServer || '',
+				smtpPort: emailConfig?.smtpPort || 587,
 				username: emailConfig?.username || '',
 				password: emailConfig?.password || '',
-				fromEmail: emailConfig?.from_email || '',
-				toEmails: emailConfig?.to_emails || [],
+				fromEmail: emailConfig?.fromEmail || '',
+				toEmails: emailConfig?.toEmails || [],
 				deploymentNotification,
 			},
 		}
@@ -205,17 +205,17 @@ export class JsonConfigRepository implements ConfigRepository {
 		const rawConfig = this.configManager.getScheduleConfig()
 		return {
 			enabled: rawConfig?.enabled || false,
-			intervalHours: rawConfig?.interval_hours || 24,
-			startImmediately: rawConfig?.start_immediately || false,
+			intervalHours: rawConfig?.intervalHours || 24,
+			startImmediately: rawConfig?.startImmediately || false,
 		}
 	}
 
 	public async getServerConfig(): Promise<ServerConfig> {
 		const rawConfig = this.configManager.getServerConfig()
 		return {
-			healthCheckPort: rawConfig?.health_check_port || 8080,
-			healthCheckHost: rawConfig?.health_check_host || '0.0.0.0',
-			pidFile: rawConfig?.pid_file || 'data/daemon.pid',
+			healthCheckPort: rawConfig?.healthCheckPort || 8080,
+			healthCheckHost: rawConfig?.healthCheckHost || '0.0.0.0',
+			pidFile: rawConfig?.pidFile || 'data/daemon.pid',
 		}
 	}
 }

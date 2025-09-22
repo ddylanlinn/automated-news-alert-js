@@ -17,6 +17,11 @@ services:
       # Schedule configuration
       - SCHEDULER_ENABLED=true
       - SCHEDULER_START_IMMEDIATELY=false
+
+      # Deployment notification configuration
+      - DEPLOYMENT_NOTIFICATION_ENABLED=true
+      - DEPLOYMENT_NOTIFICATION_DEV_EMAIL=${DEPLOYMENT_NOTIFICATION_DEV_EMAIL}
+      - FIRST_RUN_AFTER_DEPLOYMENT=true
     volumes:
       - cache-data:/app/data/cache
     restart: unless-stopped

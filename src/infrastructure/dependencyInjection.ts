@@ -16,7 +16,7 @@ import {
 	TestConnectionUseCaseImpl,
 	GetCacheStatsUseCaseImpl,
 	CleanupCacheUseCaseImpl,
-} from '../application/use_cases'
+} from '../application/useCases'
 
 type ServiceInstance =
 	| NewsRepository
@@ -48,49 +48,49 @@ export class DIContainer {
 	}
 
 	public getNewsRepository(): NewsRepository {
-		if (!this.instances.has('news_repository')) {
+		if (!this.instances.has('newsRepository')) {
 			this.instances.set(
-				'news_repository',
+				'newsRepository',
 				new JsonNewsRepository(this.appConfig.crawler.cacheDir)
 			)
 		}
-		return this.instances.get('news_repository') as NewsRepository
+		return this.instances.get('newsRepository') as NewsRepository
 	}
 
 	public getConfigRepository(): ConfigRepository {
-		if (!this.instances.has('config_repository')) {
+		if (!this.instances.has('configRepository')) {
 			this.instances.set(
-				'config_repository',
+				'configRepository',
 				new JsonConfigRepository(this.configManager)
 			)
 		}
-		return this.instances.get('config_repository') as ConfigRepository
+		return this.instances.get('configRepository') as ConfigRepository
 	}
 
 	public getCrawlerService(): CrawlerService {
-		if (!this.instances.has('crawler_service')) {
+		if (!this.instances.has('crawlerService')) {
 			this.instances.set(
-				'crawler_service',
+				'crawlerService',
 				new WebCrawlerService(this.appConfig.crawler)
 			)
 		}
-		return this.instances.get('crawler_service') as CrawlerService
+		return this.instances.get('crawlerService') as CrawlerService
 	}
 
 	public getNotificationService(): NotificationService {
-		if (!this.instances.has('notification_service')) {
+		if (!this.instances.has('notificationService')) {
 			this.instances.set(
-				'notification_service',
+				'notificationService',
 				new EmailNotificationService(this.appConfig.notification)
 			)
 		}
-		return this.instances.get('notification_service') as NotificationService
+		return this.instances.get('notificationService') as NotificationService
 	}
 
 	public getMonitoringService(): NewsMonitoringService {
-		if (!this.instances.has('monitoring_service')) {
+		if (!this.instances.has('monitoringService')) {
 			this.instances.set(
-				'monitoring_service',
+				'monitoringService',
 				new NewsMonitoringService(
 					this.getCrawlerService(),
 					this.getNewsRepository(),
@@ -98,23 +98,23 @@ export class DIContainer {
 				)
 			)
 		}
-		return this.instances.get('monitoring_service') as NewsMonitoringService
+		return this.instances.get('monitoringService') as NewsMonitoringService
 	}
 
 	public getMonitorNewsUseCase(): MonitorNewsUseCaseImpl {
-		if (!this.instances.has('monitor_news_use_case')) {
+		if (!this.instances.has('monitorNewsUseCase')) {
 			this.instances.set(
-				'monitor_news_use_case',
+				'monitorNewsUseCase',
 				new MonitorNewsUseCaseImpl(this.getMonitoringService())
 			)
 		}
-		return this.instances.get('monitor_news_use_case') as MonitorNewsUseCaseImpl
+		return this.instances.get('monitorNewsUseCase') as MonitorNewsUseCaseImpl
 	}
 
 	public getTestConnectionUseCase(): TestConnectionUseCaseImpl {
-		if (!this.instances.has('test_connection_use_case')) {
+		if (!this.instances.has('testConnectionUseCase')) {
 			this.instances.set(
-				'test_connection_use_case',
+				'testConnectionUseCase',
 				new TestConnectionUseCaseImpl(
 					this.getCrawlerService(),
 					this.getNotificationService()
@@ -122,31 +122,27 @@ export class DIContainer {
 			)
 		}
 		return this.instances.get(
-			'test_connection_use_case'
+			'testConnectionUseCase'
 		) as TestConnectionUseCaseImpl
 	}
 
 	public getCacheStatsUseCase(): GetCacheStatsUseCaseImpl {
-		if (!this.instances.has('cache_stats_use_case')) {
+		if (!this.instances.has('cacheStatsUseCase')) {
 			this.instances.set(
-				'cache_stats_use_case',
+				'cacheStatsUseCase',
 				new GetCacheStatsUseCaseImpl(this.getNewsRepository())
 			)
 		}
-		return this.instances.get(
-			'cache_stats_use_case'
-		) as GetCacheStatsUseCaseImpl
+		return this.instances.get('cacheStatsUseCase') as GetCacheStatsUseCaseImpl
 	}
 
 	public getCleanupCacheUseCase(): CleanupCacheUseCaseImpl {
-		if (!this.instances.has('cleanup_cache_use_case')) {
+		if (!this.instances.has('cleanupCacheUseCase')) {
 			this.instances.set(
-				'cleanup_cache_use_case',
+				'cleanupCacheUseCase',
 				new CleanupCacheUseCaseImpl(this.getNewsRepository())
 			)
 		}
-		return this.instances.get(
-			'cleanup_cache_use_case'
-		) as CleanupCacheUseCaseImpl
+		return this.instances.get('cleanupCacheUseCase') as CleanupCacheUseCaseImpl
 	}
 }

@@ -1,7 +1,7 @@
 /**
  * Command Line Interface for the news monitoring application
  */
-import { DIContainer } from '../infrastructure/dependency_injection'
+import { DIContainer } from '../infrastructure/dependencyInjection'
 
 export class NewsMonitorCLI {
 	private readonly container: DIContainer

@@ -12,38 +12,45 @@ import {
 interface RawConfig {
 	timezone: string
 	crawler?: {
-		target_url?: string
-		timeout_seconds?: number
-		max_retries?: number
-		user_agents?: string[]
+		targetUrl?: string
+		timeoutSeconds?: number
+		maxRetries?: number
+		userAgents?: string[]
 	}
 	storage?: {
-		cache_dir?: string
+		cacheDir?: string
+		cleanupIntervalDays?: number
 	}
 	notifications?: {
 		email?: {
 			enabled?: boolean
-			smtp_server?: string
-			smtp_port?: number
+			smtpServer?: string
+			smtpPort?: number
 			username?: string
 			password?: string
-			from_email?: string
-			to_emails?: string[]
-			deployment_notification?: {
+			fromEmail?: string
+			toEmails?: string[]
+			deploymentNotification?: {
 				enabled?: boolean
-				dev_email?: string
+				devEmail?: string
 			}
 		}
 	}
 	scheduler?: {
 		enabled?: boolean
-		interval_hours?: number
-		start_immediately?: boolean
+		intervalHours?: number
+		startImmediately?: boolean
+		rules?: Array<{
+			name: string
+			timeRange: string
+			intervalMinutes: number
+			days: string[]
+		}>
 	}
 	server?: {
-		health_check_port?: number
-		health_check_host?: string
-		pid_file?: string
+		healthCheckPort?: number
+		healthCheckHost?: string
+		pidFile?: string
 	}
 	[key: string]: unknown
 }
@@ -99,7 +106,7 @@ export class ConfigManager {
 		}
 		if (process.env['EMAIL_FROM_EMAIL']) {
 			this.setNestedValue(
-				'notifications.email.from_email',
+				'notifications.email.fromEmail',
 				process.env['EMAIL_FROM_EMAIL']
 			)
 		}
@@ -107,17 +114,17 @@ export class ConfigManager {
 			const emails = process.env['EMAIL_TO_EMAILS']
 				.split(',')
 				.map((email) => email.trim())
-			this.setNestedValue('notifications.email.to_emails', emails)
+			this.setNestedValue('notifications.email.toEmails', emails)
 		}
 		if (process.env['EMAIL_SMTP_SERVER']) {
 			this.setNestedValue(
-				'notifications.email.smtp_server',
+				'notifications.email.smtpServer',
 				process.env['EMAIL_SMTP_SERVER']
 			)
 		}
 		if (process.env['EMAIL_SMTP_PORT']) {
 			this.setNestedValue(
-				'notifications.email.smtp_port',
+				'notifications.email.smtpPort',
 				parseInt(process.env['EMAIL_SMTP_PORT'], 10)
 			)
 		}
@@ -131,13 +138,13 @@ export class ConfigManager {
 		// Deployment notification overrides
 		if (process.env['DEPLOYMENT_NOTIFICATION_ENABLED']) {
 			this.setNestedValue(
-				'notifications.email.deployment_notification.enabled',
+				'notifications.email.deploymentNotification.enabled',
 				process.env['DEPLOYMENT_NOTIFICATION_ENABLED'].toLowerCase() === 'true'
 			)
 		}
 		if (process.env['DEPLOYMENT_NOTIFICATION_DEV_EMAIL']) {
 			this.setNestedValue(
-				'notifications.email.deployment_notification.dev_email',
+				'notifications.email.deploymentNotification.devEmail',
 				process.env['DEPLOYMENT_NOTIFICATION_DEV_EMAIL']
 			)
 		}
@@ -151,7 +158,7 @@ export class ConfigManager {
 		}
 		if (process.env['SCHEDULER_START_IMMEDIATELY']) {
 			this.setNestedValue(
-				'scheduler.start_immediately',
+				'scheduler.startImmediately',
 				process.env['SCHEDULER_START_IMMEDIATELY'].toLowerCase() === 'true'
 			)
 		}
@@ -159,12 +166,12 @@ export class ConfigManager {
 		// Server configuration overrides
 		if (process.env['PORT']) {
 			this.setNestedValue(
-				'server.health_check_port',
+				'server.healthCheckPort',
 				parseInt(process.env['PORT'], 10)
 			)
 		}
 		if (process.env['HOST']) {
-			this.setNestedValue('server.health_check_host', process.env['HOST'])
+			this.setNestedValue('server.healthCheckHost', process.env['HOST'])
 		}
 	}
 
@@ -202,28 +209,28 @@ export class ConfigManager {
 			crawler: {
 				targetUrl: this.getRequiredConfig(
 					crawlerConfig,
-					'target_url',
-					'crawler.target_url'
+					'targetUrl',
+					'crawler.targetUrl'
 				) as string,
 				timeoutSeconds: this.getRequiredConfig(
 					crawlerConfig,
-					'timeout_seconds',
-					'crawler.timeout_seconds'
+					'timeoutSeconds',
+					'crawler.timeoutSeconds'
 				) as number,
 				maxRetries: this.getRequiredConfig(
 					crawlerConfig,
-					'max_retries',
-					'crawler.max_retries'
+					'maxRetries',
+					'crawler.maxRetries'
 				) as number,
 				userAgents: this.getRequiredConfig(
 					crawlerConfig,
-					'user_agents',
-					'crawler.user_agents'
+					'userAgents',
+					'crawler.userAgents'
 				) as string[],
 				cacheDir: this.getRequiredConfig(
 					this.config.storage || {},
-					'cache_dir',
-					'storage.cache_dir'
+					'cacheDir',
+					'storage.cacheDir'
 				) as string,
 			},
 			notification: {
@@ -234,13 +241,13 @@ export class ConfigManager {
 				) as boolean,
 				smtpServer: this.getRequiredConfig(
 					notificationConfig,
-					'smtp_server',
-					'notifications.email.smtp_server'
+					'smtpServer',
+					'notifications.email.smtpServer'
 				) as string,
 				smtpPort: this.getRequiredConfig(
 					notificationConfig,
-					'smtp_port',
-					'notifications.email.smtp_port'
+					'smtpPort',
+					'notifications.email.smtpPort'
 				) as number,
 				username: this.getRequiredConfig(
 					notificationConfig,
@@ -254,13 +261,13 @@ export class ConfigManager {
 				) as string,
 				fromEmail: this.getRequiredConfig(
 					notificationConfig,
-					'from_email',
-					'notifications.email.from_email'
+					'fromEmail',
+					'notifications.email.fromEmail'
 				) as string,
 				toEmails: this.getRequiredConfig(
 					notificationConfig,
-					'to_emails',
-					'notifications.email.to_emails'
+					'toEmails',
+					'notifications.email.toEmails'
 				) as string[],
 				deploymentNotification:
 					this.getDeploymentNotificationConfig(notificationConfig),
@@ -273,30 +280,30 @@ export class ConfigManager {
 				) as boolean,
 				intervalHours: this.getRequiredConfig(
 					scheduleConfig,
-					'interval_hours',
-					'scheduler.interval_hours'
+					'intervalHours',
+					'scheduler.intervalHours'
 				) as number,
 				startImmediately: this.getRequiredConfig(
 					scheduleConfig,
-					'start_immediately',
-					'scheduler.start_immediately'
+					'startImmediately',
+					'scheduler.startImmediately'
 				) as boolean,
 			},
 			server: {
 				healthCheckPort: this.getRequiredConfig(
 					serverConfig,
-					'health_check_port',
-					'server.health_check_port'
+					'healthCheckPort',
+					'server.healthCheckPort'
 				) as number,
 				healthCheckHost: this.getRequiredConfig(
 					serverConfig,
-					'health_check_host',
-					'server.health_check_host'
+					'healthCheckHost',
+					'server.healthCheckHost'
 				) as string,
 				pidFile: this.getRequiredConfig(
 					serverConfig,
-					'pid_file',
-					'server.pid_file'
+					'pidFile',
+					'server.pidFile'
 				) as string,
 			},
 		}
@@ -352,17 +359,17 @@ export class ConfigManager {
 	private getDeploymentNotificationConfig(
 		notificationConfig: NonNullable<RawConfig['notifications']>['email']
 	): DeploymentNotificationConfigDTO {
-		const deploymentConfig = notificationConfig?.deployment_notification || {}
+		const deploymentConfig = notificationConfig?.deploymentNotification || {}
 		return {
 			enabled: this.getRequiredConfig(
 				deploymentConfig,
 				'enabled',
-				'notifications.email.deployment_notification.enabled'
+				'notifications.email.deploymentNotification.enabled'
 			) as boolean,
 			devEmail: this.getRequiredConfig(
 				deploymentConfig,
-				'dev_email',
-				'notifications.email.deployment_notification.dev_email'
+				'devEmail',
+				'notifications.email.deploymentNotification.devEmail'
 			) as string,
 		}
 	}

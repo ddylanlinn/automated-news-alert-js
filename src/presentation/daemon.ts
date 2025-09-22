@@ -4,7 +4,7 @@
 import * as express from 'express'
 import * as fs from 'fs'
 import * as path from 'path'
-import { DIContainer } from '../infrastructure/dependency_injection'
+import { DIContainer } from '../infrastructure/dependencyInjection'
 import { HealthCheckDTO } from '../application/dto'
 
 export class NewsMonitorDaemon {
@@ -326,7 +326,6 @@ export class NewsMonitorDaemon {
 		this.startScheduler()
 
 		this.printInfo('✅ Daemon Server started')
-		this.printInfo('Press Ctrl+C to stop service')
 
 		return true
 	}

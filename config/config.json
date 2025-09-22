@@ -1,38 +1,38 @@
 {
 	"timezone": "Asia/Taipei",
 	"server": {
-		"health_check_port": 8080,
-		"health_check_host": "0.0.0.0",
-		"pid_file": "data/daemon.pid"
+		"healthCheckPort": 8080,
+		"healthCheckHost": "0.0.0.0",
+		"pidFile": "data/daemon.pid"
 	},
 	"crawler": {
-		"target_url": "https://www.hpa.gov.tw/Pages/TopicList.aspx?nodeid=4878",
-		"timeout_seconds": 60,
-		"max_retries": 3,
-		"user_agents": [
+		"targetUrl": "https://www.hpa.gov.tw/Pages/TopicList.aspx?nodeid=4878",
+		"timeoutSeconds": 60,
+		"maxRetries": 3,
+		"userAgents": [
 			"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 			"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 		]
 	},
 	"storage": {
-		"cache_dir": "data/cache",
-		"cleanup_interval_days": 30
+		"cacheDir": "data/cache",
+		"cleanupIntervalDays": 30
 	},
 	"scheduler": {
 		"enabled": true,
-		"interval_hours": 1,
-		"start_immediately": false,
+		"intervalHours": 1,
+		"startImmediately": false,
 		"rules": [
 			{
 				"name": "Monday to Friday 8AM to 4PM every hour",
-				"time_range": "08:00-16:00",
-				"interval_minutes": 60,
+				"timeRange": "08:00-16:00",
+				"intervalMinutes": 60,
 				"days": ["monday", "tuesday", "wednesday", "thursday", "friday"]
 			},
 			{
 				"name": "Monday to Friday 4PM to 7PM",
-				"time_range": "16:00-19:00",
-				"interval_minutes": 15,
+				"timeRange": "16:00-19:00",
+				"intervalMinutes": 15,
 				"days": ["monday", "tuesday", "wednesday", "thursday", "friday"]
 			}
 		]
@@ -40,15 +40,15 @@
 	"notifications": {
 		"email": {
 			"enabled": true,
-			"smtp_server": "smtp.gmail.com",
-			"smtp_port": 587,
+			"smtpServer": "smtp.gmail.com",
+			"smtpPort": 587,
 			"username": "test@example.com",
 			"password": "test_password",
-			"from_email": "test@example.com",
-			"to_emails": ["test@example.com"],
-			"deployment_notification": {
+			"fromEmail": "test@example.com",
+			"toEmails": ["test@example.com"],
+			"deploymentNotification": {
 				"enabled": true,
-				"dev_email": "dev@example.com"
+				"devEmail": "dev@example.com"
 			}
 		}
 	}
