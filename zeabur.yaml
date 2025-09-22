@@ -35,6 +35,11 @@ services:
       - PORT=8080
       - HOST=0.0.0.0
 
+    # DNS configuration
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+
     # Resource configuration
     resources:
       memory: 512Mi
