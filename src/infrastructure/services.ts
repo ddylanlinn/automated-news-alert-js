@@ -5,6 +5,8 @@ import axios, { AxiosInstance } from 'axios'
 import * as cheerio from 'cheerio'
 import * as nodemailer from 'nodemailer'
 import * as dns from 'dns'
+import * as net from 'net'
+import * as https from 'https'
 import { promisify } from 'util'
 import { NewsItem, CrawlResult, NotificationResult } from '../domain/entities'
 import { CrawlerService, NotificationService } from '../domain/services'
@@ -24,6 +26,15 @@ export class WebCrawlerService implements CrawlerService {
 
 		this.httpClient = axios.create({
 			timeout: config.timeoutSeconds * 1000,
+			maxRedirects: 5,
+			validateStatus: () => true, // Accept all status codes
+			httpsAgent: new https.Agent({
+				rejectUnauthorized: false, // Ignore SSL certificate errors
+				keepAlive: true,
+				timeout: config.timeoutSeconds * 1000,
+			}),
+			maxContentLength: 50 * 1024 * 1024, // 50MB
+			maxBodyLength: 50 * 1024 * 1024, // 50MB
 			headers: {
 				Accept:
 					'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -150,10 +161,28 @@ export class WebCrawlerService implements CrawlerService {
 					}
 				} catch (error) {
 					console.error(`Request error on attempt ${attempt + 1}:`, error)
+					
+					// Additional diagnostic when request fails
+					if (attempt === 0) {
+						console.log('🔍 Running additional diagnostics...')
+						const hostname = new URL(url).hostname
+						await this.testHttpsConnection(hostname)
+					}
+					
 					if (attempt < this.config.maxRetries - 1) {
-						await this.sleep(Math.pow(2, attempt) * 1000) // Exponential backoff
+						const backoffTime = Math.pow(2, attempt) * 1000
+						console.log(`⏳ Waiting ${backoffTime}ms before retry...`)
+						await this.sleep(backoffTime) // Exponential backoff
 					}
 				}
+			}
+
+			// If Axios fails for this URL, try with native HTTPS as fallback
+			console.log(`🔄 Axios failed, trying native HTTPS for: ${url}`)
+			const nativeResult = await this.fetchWithNativeHttps(url, urlHeaders)
+			if (nativeResult && nativeResult.length > 1000) {
+				console.log(`✅ Native HTTPS succeeded, fetched ${nativeResult.length} characters`)
+				return nativeResult
 			}
 		}
 
@@ -326,6 +355,13 @@ export class WebCrawlerService implements CrawlerService {
 					`✅ DNS resolution successful: ${hostname} -> ${result.address}`
 				)
 				this.cacheDnsResult(hostname, result.address)
+				
+				// Test TCP connection to the resolved IP
+				const tcpTest = await this.testTcpConnection(result.address, 443)
+				if (!tcpTest) {
+					console.warn(`⚠️ TCP connection to ${result.address}:443 failed`)
+				}
+				
 				return true
 			}
 
@@ -367,6 +403,105 @@ export class WebCrawlerService implements CrawlerService {
 
 	private sleep(ms: number): Promise<void> {
 		return new Promise((resolve) => setTimeout(resolve, ms))
+	}
+
+	private async testTcpConnection(ip: string, port: number): Promise<boolean> {
+		return new Promise((resolve) => {
+			const socket = new net.Socket()
+			socket.setTimeout(5000)
+			
+			socket.on('connect', () => {
+				console.log(`✅ TCP connection to ${ip}:${port} successful`)
+				socket.destroy()
+				resolve(true)
+			})
+			
+			socket.on('error', (error) => {
+				console.log(`❌ TCP connection to ${ip}:${port} failed:`, error.message)
+				resolve(false)
+			})
+			
+			socket.on('timeout', () => {
+				console.log(`⏰ TCP connection to ${ip}:${port} timed out`)
+				socket.destroy()
+				resolve(false)
+			})
+			
+			socket.connect(port, ip)
+		})
+	}
+
+	private async testHttpsConnection(hostname: string): Promise<boolean> {
+		return new Promise((resolve) => {
+			const options = {
+				hostname,
+				port: 443,
+				path: '/',
+				method: 'HEAD',
+				timeout: 10000,
+				rejectUnauthorized: false, // Ignore SSL certificate errors
+			}
+			
+			const req = https.request(options, (res) => {
+				console.log(`✅ HTTPS connection to ${hostname} successful, status: ${res.statusCode}`)
+				resolve(true)
+			})
+			
+			req.on('error', (error) => {
+				console.log(`❌ HTTPS connection to ${hostname} failed:`, error.message)
+				resolve(false)
+			})
+			
+			req.on('timeout', () => {
+				console.log(`⏰ HTTPS connection to ${hostname} timed out`)
+				req.destroy()
+				resolve(false)
+			})
+			
+			req.end()
+		})
+	}
+
+	private async fetchWithNativeHttps(url: string, headers: any): Promise<string> {
+		return new Promise((resolve) => {
+			const urlObj = new URL(url)
+			const options = {
+				hostname: urlObj.hostname,
+				port: 443,
+				path: urlObj.pathname + urlObj.search,
+				method: 'GET',
+				headers,
+				timeout: this.config.timeoutSeconds * 1000,
+				rejectUnauthorized: false, // Ignore SSL certificate errors
+			}
+
+			let data = ''
+			
+			const req = https.request(options, (res) => {
+				console.log(`Native HTTPS response status: ${res.statusCode}`)
+				
+				res.on('data', (chunk) => {
+					data += chunk
+				})
+				
+				res.on('end', () => {
+					resolve(data)
+				})
+			})
+			
+			req.on('error', (error) => {
+				console.log(`Native HTTPS error:`, error.message)
+				resolve('') // Return empty string instead of rejecting
+			})
+			
+			req.on('timeout', () => {
+				console.log('Native HTTPS request timed out')
+				req.destroy()
+				resolve('')
+			})
+			
+			req.end()
+		})
 	}
 }
 
