@@ -105,39 +105,39 @@ Edit `config/config.json` and `.env` with your settings:
 ### 2. Install Dependencies
 
 ```bash
-pnpm install
+bun install
 ```
 
 ### 3. Using Command Line Interface
 
 ```bash
 # Run crawler once
-pnpm run crawl
+bun run crawl
 
 # Test connections
-pnpm run test
+bun run test
 
 # View cache statistics
-pnpm run stats
+bun run stats
 
 # Clean up cache
-pnpm run cleanup -- --days 30
+bun run cleanup -- --days 30
 ```
 
 ### 4. Start Daemon Service
 
 ```bash
 # Start service
-pnpm run daemon:start
+bun run daemon:start
 
 # Stop service
-pnpm run daemon:stop
+bun run daemon:stop
 
 # Restart service
-pnpm run daemon:restart
+bun run daemon:restart
 
 # Check status
-pnpm run daemon:status
+bun run daemon:status
 ```
 
 ## Environment Variable Support
@@ -233,14 +233,14 @@ Response:
 node --version
 
 # Check configuration file
-pnpm run test
+bun run test
 ```
 
 ### 2. No Notifications Received
 
 ```bash
 # Test email settings
-pnpm run test
+bun run test
 
 # Check spam folder
 ```
@@ -249,14 +249,14 @@ pnpm run test
 
 ```bash
 # Force stop and cleanup
-pnpm run daemon:stop
+bun run daemon:stop
 rm -f data/daemon.pid
-pnpm run daemon:start
+bun run daemon:start
 ```
 
 ## System Requirements
 
-- Node.js 18+
+- Bun 1.0+ (or Node.js 18+)
 - Network connection
 - Sufficient disk space (for caching)
 - Gmail app password (for email notifications)
@@ -279,16 +279,16 @@ pnpm run daemon:start
 
 ```bash
 # Run tests
-pnpm run test:unit
+bun run test:unit
 
 # Code style check
-pnpm run lint
+bun run lint
 
 # Type checking
-pnpm run type-check
+bun run type-check
 
 # Build
-pnpm run build
+bun run build
 ```
 
 This refactored version maintains the integrity of the original functionality while providing better architecture design that is easier to maintain and extend.

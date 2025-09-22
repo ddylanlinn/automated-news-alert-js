@@ -88,7 +88,7 @@ export class NewsMonitoringService {
 				isDevNotification = true
 			} else {
 				// Normal run - send to all recipients
-				title = `News update - Found ${newItems.length} new messages`
+				title = `💫 News update - Found ${newItems.length} new messages`
 				message = `Monitoring system found ${newItems.length} new messages.`
 				isDevNotification = false
 			}

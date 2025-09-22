@@ -1,5 +1,5 @@
-# Use Node.js 18 official image
-FROM node:18-alpine
+# Use Bun official image
+FROM oven/bun:1-alpine
 
 # Set working directory
 WORKDIR /app
@@ -12,17 +12,16 @@ RUN apk add --no-cache \
 
 # Copy package files
 COPY package*.json ./
-COPY pnpm-workspace.yaml ./
+COPY bun.lockb ./
 
-# Install pnpm and dependencies
-RUN npm install -g pnpm
-RUN pnpm install --frozen-lockfile
+# Install dependencies
+RUN bun install --frozen-lockfile
 
 # Copy application code
 COPY . .
 
 # Build the application
-RUN pnpm run build
+RUN bun run build
 
 # Create data directory
 RUN mkdir -p /app/data/cache
@@ -42,4 +41,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8080/health || exit 1
 
 # Startup command
-CMD ["node", "dist/daemon.js", "start"]
+CMD ["bun", "dist/daemon.js", "start"]
