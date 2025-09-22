@@ -1,0 +1,68 @@
+# Zeabur deployment configuration
+version: 1
+
+services:
+  news-crawler:
+    # Service type: Background Service
+    type: background
+
+    # Build configuration
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    # Environment variables
+    env:
+      # Schedule configuration
+      - SCHEDULER_ENABLED=true
+      - SCHEDULER_START_IMMEDIATELY=false
+
+      # Email configuration (read from environment variables)
+      - EMAIL_ENABLED=true
+      - EMAIL_SMTP_SERVER=smtp.gmail.com
+      - EMAIL_SMTP_PORT=587
+      - EMAIL_USERNAME=${EMAIL_USERNAME}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD}
+      - EMAIL_FROM_EMAIL=${EMAIL_FROM_EMAIL}
+      - EMAIL_TO_EMAILS=${EMAIL_TO_EMAILS}
+
+      # Deployment notification configuration
+      - DEPLOYMENT_NOTIFICATION_ENABLED=true
+      - DEPLOYMENT_NOTIFICATION_DEV_EMAIL=${DEPLOYMENT_NOTIFICATION_DEV_EMAIL}
+
+      # Server configuration
+      - PORT=8080
+      - HOST=0.0.0.0
+
+    # Resource configuration
+    resources:
+      memory: 512Mi
+      cpu: 0.5
+
+    # Health check
+    healthcheck:
+      path: /health
+      port: 8080
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+    # Data persistence
+    volumes:
+      - name: cache-data
+        mountPath: /app/data/cache
+
+    # Restart policy
+    restartPolicy: always
+
+    # Logging configuration
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+# Data volume configuration
+volumes:
+  cache-data:
+    size: 1Gi

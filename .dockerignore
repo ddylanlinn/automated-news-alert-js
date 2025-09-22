@@ -1,0 +1,75 @@
+# Docker 忽略文件
+# 忽略不需要的文件以減少建置時間和映像大小
+
+# Git 相關
+.git
+.gitignore
+.gitattributes
+
+# Python 相關
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 虛擬環境
+hpa_crawler_env/
+venv/
+env/
+ENV/
+
+# IDE 相關
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 日誌文件
+*.log
+logs/
+
+# 臨時文件
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# 測試相關
+.pytest_cache/
+.coverage
+htmlcov/
+
+# 文檔
+*.md
+docs/
+
+# 部署相關
+docker-compose.yml
+.dockerignore
+Dockerfile
+
+# 本地配置
+.env
+.env.local
+.env.*.local
+
+# 備份文件
+backup/
+*.bak
