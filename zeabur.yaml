@@ -35,10 +35,16 @@ services:
       - PORT=8080
       - HOST=0.0.0.0
 
+      # DNS fallback configuration
+      - DNS_FALLBACK_ENABLED=true
+      - TARGET_IP=210.241.78.32
+
     # DNS configuration
     dns:
       - 8.8.8.8
       - 8.8.4.4
+      - 1.1.1.1
+      - 1.0.0.1
 
     # Resource configuration
     resources:

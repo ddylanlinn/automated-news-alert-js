@@ -103,30 +103,56 @@ export class WebCrawlerService implements CrawlerService {
 			'Upgrade-Insecure-Requests': '1',
 		}
 
-		for (let attempt = 0; attempt < this.config.maxRetries; attempt++) {
-			try {
-				console.log(
-					`Fetching page (attempt ${attempt + 1}/${this.config.maxRetries})`
-				)
+		// Try with original URL first, then with IP if DNS fails
+		const urlsToTry = [this.config.targetUrl]
+		if (!dnsSuccess && process.env['DNS_FALLBACK_ENABLED'] === 'true') {
+			// Add IP-based URL as fallback
+			const targetIp = process.env['TARGET_IP'] || '210.241.78.32'
+			const ipUrl = this.config.targetUrl.replace('www.hpa.gov.tw', targetIp)
+			urlsToTry.push(ipUrl)
+			console.log(`DNS fallback enabled, will try IP: ${targetIp}`)
+		}
 
-				const response = await this.httpClient.get(this.config.targetUrl, {
-					headers,
-					maxRedirects: 5,
-				})
+		for (const url of urlsToTry) {
+			// Prepare headers for this URL
+			const urlHeaders: any = { ...headers }
+			if (
+				url.includes('210.241.78.32') ||
+				url.includes(process.env['TARGET_IP'] || '')
+			) {
+				// Add Host header when using IP address
+				urlHeaders['Host'] = 'www.hpa.gov.tw'
+			}
 
-				// Check if we got valid content
-				if (response.data && response.data.length > 1000) {
-					console.log(`Successfully fetched ${response.data.length} characters`)
-					return response.data
-				} else {
+			for (let attempt = 0; attempt < this.config.maxRetries; attempt++) {
+				try {
 					console.log(
-						`Page content too short: ${response.data?.length || 0} characters`
+						`Fetching page (attempt ${attempt + 1}/${
+							this.config.maxRetries
+						}) from: ${url}`
 					)
-				}
-			} catch (error) {
-				console.error(`Request error on attempt ${attempt + 1}:`, error)
-				if (attempt < this.config.maxRetries - 1) {
-					await this.sleep(Math.pow(2, attempt) * 1000) // Exponential backoff
+
+					const response = await this.httpClient.get(url, {
+						headers: urlHeaders,
+						maxRedirects: 5,
+					})
+
+					// Check if we got valid content
+					if (response.data && response.data.length > 1000) {
+						console.log(
+							`Successfully fetched ${response.data.length} characters`
+						)
+						return response.data
+					} else {
+						console.log(
+							`Page content too short: ${response.data?.length || 0} characters`
+						)
+					}
+				} catch (error) {
+					console.error(`Request error on attempt ${attempt + 1}:`, error)
+					if (attempt < this.config.maxRetries - 1) {
+						await this.sleep(Math.pow(2, attempt) * 1000) // Exponential backoff
+					}
 				}
 			}
 		}
