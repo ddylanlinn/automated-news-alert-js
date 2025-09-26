@@ -33,6 +33,11 @@ export interface NewsRepository {
 	 * Check if this is first run after deployment
 	 */
 	isFirstRunAfterDeployment(): Promise<boolean>
+
+	/**
+	 * Reset first run state (for manual override)
+	 */
+	resetFirstRunState(): Promise<boolean>
 }
 
 export interface ConfigRepository {

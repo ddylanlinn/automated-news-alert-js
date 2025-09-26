@@ -150,12 +150,42 @@ export class JsonNewsRepository implements NewsRepository {
 		}
 	}
 
+	public async resetFirstRunState(): Promise<boolean> {
+		// Reset first run state by deleting the marker file
+		const markerFile = path.join(this.cacheDir, 'first_run_complete')
+		try {
+			await fs.promises.unlink(markerFile)
+			console.log(
+				'✅ First run state reset - next run will be treated as first deployment'
+			)
+			return true
+		} catch (error) {
+			console.warn('⚠️  Failed to reset first run state:', error)
+			return false
+		}
+	}
+
 	public async isFirstRunAfterDeployment(): Promise<boolean> {
-		// Check environment variable FIRST_RUN_AFTER_DEPLOYMENT
-		// If set to 'true' or '1', then it's first run
-		const firstRun =
-			process.env['FIRST_RUN_AFTER_DEPLOYMENT']?.toLowerCase() || 'false'
-		return ['true', '1', 'yes'].includes(firstRun)
+		// Simple file-based check: if marker file exists, it's not first run
+		const markerFile = path.join(this.cacheDir, 'first_run_complete')
+
+		try {
+			await fs.promises.access(markerFile, fs.constants.F_OK)
+			// Marker file exists = not first run
+			return false
+		} catch {
+			// Marker file doesn't exist = first run
+			// Create marker file to mark completion
+			try {
+				await fs.promises.writeFile(markerFile, '', 'utf-8')
+				console.log(
+					'✅ First deployment completed - future notifications will go to all recipients'
+				)
+			} catch (error) {
+				console.warn('⚠️  Failed to create first run marker:', error)
+			}
+			return true
+		}
 	}
 }
 

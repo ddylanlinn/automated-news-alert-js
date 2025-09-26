@@ -171,6 +171,34 @@ export class NewsMonitorCLI {
 			return 1
 		}
 	}
+
+	public async resetFirstRunState(): Promise<number> {
+		try {
+			console.log('=== Reset First Run State ===')
+
+			// Get repository directly (since there's no use case for this)
+			const repository = this.container.getNewsRepository()
+
+			// Reset state
+			const success = await repository.resetFirstRunState()
+
+			if (success) {
+				console.log('✅ First run state has been reset')
+				console.log(
+					'📝 Next crawler run will be treated as first run after deployment'
+				)
+				return 0
+			} else {
+				console.log('❌ Failed to reset first run state')
+				return 1
+			}
+		} catch (error) {
+			const errorMessage =
+				error instanceof Error ? error.message : String(error)
+			console.error(`❌ Reset failed: ${errorMessage}`)
+			return 1
+		}
+	}
 }
 
 export function parseCliArgs(): {
@@ -187,7 +215,7 @@ export function parseCliArgs(): {
 	}
 
 	const command = args[0]
-	const validCommands = ['crawl', 'test', 'stats', 'cleanup']
+	const validCommands = ['crawl', 'test', 'stats', 'cleanup', 'reset-state']
 
 	if (!command || !validCommands.includes(command)) {
 		throw new Error(
@@ -239,6 +267,8 @@ export async function main(): Promise<number> {
 				return await cli.showCacheStats()
 			case 'cleanup':
 				return await cli.cleanupCache(days)
+			case 'reset-state':
+				return await cli.resetFirstRunState()
 			default:
 				throw new Error(`Unknown command: ${command}`)
 		}
